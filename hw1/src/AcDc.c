@@ -464,6 +464,7 @@ Statement makeAssignmentNode( char *id, Expression *v, Expression *expr_tail )
         assign.expr = v;
     else
         assign.expr = expr_tail;
+    assign.expr = fold_constant(assign.expr);// constant-folding
     stmt.stmt.assign = assign;
 
     return stmt;
@@ -497,6 +498,153 @@ Program parser( FILE *source )
 
     return program;
 }
+/********************************************************
+ Constant folding
+ *********************************************************/
+Expression *fold_constant(Expression *expr){
+    if (expr == NULL || (expr->v).type == IntConst || (expr->v).type == FloatConst || (expr->v).type == Identifier) {
+        return expr;
+    }
+    if ((expr->leftOperand->v).type == PlusNode || (expr->leftOperand->v).type == MinusNode || (expr->leftOperand->v).type == MulNode || (expr->leftOperand->v).type == DivNode) {
+        expr->leftOperand = fold_constant(expr->leftOperand);
+    }
+    if ((expr->rightOperand->v).type == PlusNode || (expr->rightOperand->v).type == MinusNode || (expr->rightOperand->v).type == MulNode || (expr->rightOperand->v).type == DivNode) {
+        expr->rightOperand = fold_constant(expr->rightOperand);
+    }
+    if ((expr->leftOperand->v).type == IntConst && (expr->rightOperand->v).type == IntConst) {
+        return fold_intNode(expr->leftOperand, expr->rightOperand, (expr->v).type);
+    }
+    else if( (expr->leftOperand->v).type == FloatConst && (expr->rightOperand->v).type == FloatConst ){
+        return fold_floatNode(expr->leftOperand, expr->rightOperand, (expr->v).type);
+    }
+    else if( (expr->leftOperand->v).type == IntConst && (expr->rightOperand->v).type == FloatConst){
+        return fold_intfloatNode(expr->leftOperand, expr->rightOperand, (expr->v).type);
+    }
+    else if((expr->leftOperand->v).type == FloatConst && (expr->rightOperand->v).type == IntConst){
+        return fold_floatintNode(expr->leftOperand, expr->rightOperand, (expr->v).type);
+    }
+    else
+        return expr;
+}
+
+Expression *fold_intNode(Expression *left, Expression *right, ValueType t){
+    Expression *temp = (Expression *)malloc(sizeof(Expression));
+    (temp->v).type = IntConst;
+    int val;
+    int leftval = (left->v).val.ivalue;
+    int rightval = (right->v).val.ivalue;
+    temp->leftOperand = NULL;
+    temp->rightOperand = NULL;
+    switch (t) {
+        case PlusNode:
+            val = leftval + rightval;
+            break;
+        case MinusNode:
+            val = leftval - rightval;
+            break;
+        case DivNode:
+            val = leftval / rightval;
+            break;
+        case MulNode:
+            val = leftval * rightval;
+            break;
+        default:
+            printf("Error: illegal op");
+            exit(3);
+            break;
+    }
+    (temp->v).val.ivalue = val;
+    return  temp;
+}
+Expression *fold_floatNode(Expression *left, Expression *right, ValueType t){
+    Expression *temp = (Expression *)malloc(sizeof(Expression));
+    (temp->v).type = FloatConst;
+    float val;
+    float leftval = (left->v).val.fvalue;
+    float rightval = (right->v).val.fvalue;
+    temp->leftOperand = NULL;
+    temp->rightOperand = NULL;
+    switch (t) {
+        case PlusNode:
+            val = leftval + rightval;
+            break;
+        case MinusNode:
+            val = leftval - rightval;
+            break;
+        case DivNode:
+            val = leftval / rightval;
+            break;
+        case MulNode:
+            val = leftval * rightval;
+            break;
+        default:
+            printf("Error: illegal op");
+            exit(3);
+            break;
+    }
+    (temp->v).val.fvalue = val;
+    return  temp;
+}
+Expression *fold_intfloatNode(Expression *left, Expression *right, ValueType t){
+    Expression *temp = (Expression *)malloc(sizeof(Expression));
+    (temp->v).type = FloatConst;
+    float val;
+    int leftval = (left->v).val.ivalue;
+    float rightval = (right->v).val.fvalue;
+    temp->leftOperand = NULL;
+    temp->rightOperand = NULL;
+    switch (t) {
+        case PlusNode:
+            val = leftval + rightval;
+            break;
+        case MinusNode:
+            val = leftval - rightval;
+            break;
+        case DivNode:
+            val = leftval / rightval;
+            break;
+        case MulNode:
+            val = leftval * rightval;
+            break;
+        default:
+            printf("Error: illegal op");
+            exit(3);
+            break;
+    }
+    (temp->v).val.fvalue = val;
+    return  temp;
+}
+Expression *fold_floatintNode(Expression *left, Expression *right, ValueType t){
+    Expression *temp = (Expression *)malloc(sizeof(Expression));
+    (temp->v).type = FloatConst;
+    float val;
+    int leftval = (left->v).val.fvalue;
+    float rightval = (right->v).val.ivalue;
+    temp->leftOperand = NULL;
+    temp->rightOperand = NULL;
+    switch (t) {
+        case PlusNode:
+            val = leftval + rightval;
+            break;
+        case MinusNode:
+            val = leftval - rightval;
+            break;
+        case DivNode:
+            val = leftval / rightval;
+            break;
+        case MulNode:
+            val = leftval * rightval;
+            break;
+        default:
+            printf("Error: illegal op");
+            exit(3);
+            break;
+    }
+    (temp->v).val.fvalue = val;
+    return  temp;
+}
+
+
 
 /********************************************************
   Hash function
@@ -725,7 +873,6 @@ void fprint_op( FILE *target, ValueType op )
 
 void fprint_expr( FILE *target, Expression *expr)
 {
-
     if(expr->leftOperand == NULL){
         switch( (expr->v).type ){
             case Identifier:
@@ -733,6 +880,7 @@ void fprint_expr( FILE *target, Expression *expr)
                 break;
             case IntConst:
                 fprintf(target,"%d\n",(expr->v).val.ivalue);
+                printf("ivalue: %d\n", (expr->v).val.ivalue);
                 break;
             case FloatConst:
                 fprintf(target,"%f\n", (expr->v).val.fvalue);
