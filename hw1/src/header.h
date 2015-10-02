@@ -1,6 +1,9 @@
 #ifndef HEADER_H_INCLUDED
 #define HEADER_H_INCLUDED
 
+#define IDLENGTH 64
+#define REGNUM 26
+
 /******************************************************************************************************************************************
     All enumeration literals
        TokenType : Specify the type of the token scanner returns
@@ -38,7 +41,7 @@ typedef struct Token{
 /* For decl production or say one declaration statement */
 typedef struct Declaration{
     DataType type;
-    char name;
+    char name[IDLENGTH + 1];
 }Declaration;
 
 /* 
@@ -56,7 +59,7 @@ typedef struct Declarations{
 typedef struct Value{
     ValueType type;
     union{
-        char id;                   /* if the node represent the access of the identifier */
+        char id[IDLENGTH + 1];                   /* if the node represent the access of the identifier */
         Operation op;              /* store +, -, *, /, =, type_convert */
         int ivalue;                /* for integer constant in the expression */
         float fvalue;              /* for float constant */
@@ -79,7 +82,7 @@ typedef struct Expression{
 
 /* For one assignment statement */
 typedef struct AssignmentStatement{
-    char id;
+    char id[IDLENGTH + 1];
     Expression *expr;
     DataType type;      /* For type checking to store the type of all expression on the right. */
 }AssignmentStatement;
@@ -89,7 +92,7 @@ typedef struct AssignmentStatement{
 typedef struct Statement{
     StmtType type;
     union{
-        char variable;              /* print statement */
+        char variable[IDLENGTH + 1];              /* print statement */
         AssignmentStatement assign;
     }stmt;
 }Statement;
@@ -106,13 +109,22 @@ typedef struct Program{
     Statements *statements;
 }Program;
 
+typedef struct HashPair
+{
+    DataType type;
+    char str[IDLENGTH + 1];
+} HashPair;
+
 /* For building the symbol table */
 typedef struct SymbolTable{
-    DataType table[26];
+    HashPair table[REGNUM];
 } SymbolTable;
 
 
+
 Token getNumericToken( FILE *source, char c );
+Token getIdentifier( FILE *source, char c);
+void ungetIdentifier( FILE *source, char *tok);
 Token scanner( FILE *source );
 Declaration makeDeclarationNode( Token declare_type, Token identifier );
 Declarations *makeDeclarationTree( Declaration decl, Declarations *decls );
@@ -123,20 +135,22 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue );
 Expression *parseExpression( FILE *source, Expression *lvalue );
 Expression *parseTermTail( FILE *source, Expression *lvalue );
 Expression *parseTerm( FILE *source );
-Statement makeAssignmentNode( char id, Expression *v, Expression *expr_tail );
-Statement makePrintNode( char id );
+Statement makeAssignmentNode( char *id, Expression *v, Expression *expr_tail );
+Statement makePrintNode( char *id );
 Statements *makeStatementTree( Statement stmt, Statements *stmts );
 Statement parseStatement( FILE *source, Token token );
 Statements *parseStatements( FILE * source );
 Program parser( FILE *source );
 void InitializeTable( SymbolTable *table );
-void add_table( SymbolTable *table, char c, DataType t );
+void add_table( SymbolTable *table, char *c, DataType t );
+void add2table( SymbolTable *table, char *str, DataType t );
+DataType lookup_hashpair( SymbolTable *table, char *str);
 SymbolTable build( Program program );
 void convertType( Expression * old, DataType type );
 DataType generalize( Expression *left, Expression *right );
-DataType lookup_table( SymbolTable *table, char c );
+DataType lookup_table( SymbolTable *table, char *c );
 void checkexpression( Expression * expr, SymbolTable * table );
-void checkstmt( Statement *stmt, SymbolTable * table );
+void checkstmt( Statement *stmt, SymbolTable* table );
 void check( Program *program, SymbolTable * table);
 void fprint_op( FILE *target, ValueType op );
 void fprint_expr( FILE *target, Expression *expr );
