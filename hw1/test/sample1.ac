@@ -1,3 +1,6 @@
 f a
 i bb
-a = 1 + 2 + 3 - 4 + bb
+i cat
+cat = 123
+a = 10 + cat
+p a

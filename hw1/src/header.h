@@ -59,11 +59,12 @@ typedef struct Declarations{
 typedef struct Value{
     ValueType type;
     union{
-        char id[IDLENGTH + 1];                   /* if the node represent the access of the identifier */
+        char id[IDLENGTH + 1];     /* if the node represent the access of the identifier */
         Operation op;              /* store +, -, *, /, =, type_convert */
         int ivalue;                /* for integer constant in the expression */
         float fvalue;              /* for float constant */
     }val;
+    char hashval;
 }Value;
 
 
@@ -83,6 +84,7 @@ typedef struct Expression{
 /* For one assignment statement */
 typedef struct AssignmentStatement{
     char id[IDLENGTH + 1];
+    char hashval;
     Expression *expr;
     DataType type;      /* For type checking to store the type of all expression on the right. */
 }AssignmentStatement;
@@ -93,6 +95,7 @@ typedef struct Statement{
     StmtType type;
     union{
         char variable[IDLENGTH + 1];              /* print statement */
+        char hashval;
         AssignmentStatement assign;
     }stmt;
 }Statement;
@@ -150,6 +153,7 @@ void InitializeTable( SymbolTable *table );
 void add_table( SymbolTable *table, char *c, DataType t );
 void add2table( SymbolTable *table, char *str, DataType t );
 DataType lookup_hashpair( SymbolTable *table, char *str);
+char lookup_hashval( SymbolTable *table, char *str);
 SymbolTable build( Program program );
 void convertType( Expression * old, DataType type );
 DataType generalize( Expression *left, Expression *right );

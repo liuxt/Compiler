@@ -649,11 +649,11 @@ Expression *fold_floatintNode(Expression *left, Expression *right, ValueType t){
 /********************************************************
   Hash function
  *********************************************************/
-static inline long int hashString(char * str)
+static long int hashString(char * str)
 {
     unsigned long hash = 5381;
     int c;
-    while (c = *str++)
+    while (c = *(str++))
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
     return hash;
 }
@@ -668,7 +668,7 @@ static inline char * copystring(char * value)
     return copy;
 }
 
-void add2table( SymbolTable *table, char *str, DataType t ){
+void add2table( SymbolTable *table, char *str, DataType t){
     int index = (int)(hashString(str) % REGNUM);
     HashPair cur_pair = table->table[index];
     while (cur_pair.type != Notype) {
@@ -695,6 +695,19 @@ DataType lookup_hashpair(SymbolTable *table, char *str){
     }
     printf("Error : identifier %s is not declared\n", str);//error
     return cur_pair.type;
+}
+char lookup_hashval(SymbolTable *table, char *str){
+    int index = (int)(hashString(str) % REGNUM);
+    HashPair cur_pair = table->table[index];
+    while (cur_pair.type != Notype) {
+        if (strcmp(str, cur_pair.str) == 0) {
+            return 'a' + index;
+        }
+        index = (index + 1) % REGNUM;
+        cur_pair = table->table[index];
+    }
+    printf("Error : identifier %s is not declared\n", str);//error
+    return 'a' + index;
 }
 
 
@@ -795,6 +808,7 @@ void checkexpression( Expression * expr, SymbolTable * table )
                 c = expr->v.val.id;
                 printf("identifier : %s\n",c);
                 expr->type = lookup_hashpair(table, c);
+                (expr->v).hashval = lookup_hashval(table, c); // hash the expr node
                 break;
             case IntConst:
                 printf("constant : int\n");
@@ -828,6 +842,7 @@ void checkstmt( Statement *stmt, SymbolTable * table )
     if(stmt->type == Assignment){
         AssignmentStatement assign = stmt->stmt.assign;
         printf("assignment : %s \n",assign.id);
+        stmt->stmt.assign.hashval = lookup_hashval(table, assign.id);// hash the assign node
         checkexpression(assign.expr, table);
         stmt->stmt.assign.type = lookup_hashpair(table, assign.id);
         if (assign.expr->type == Float && stmt->stmt.assign.type == Int) {
@@ -837,8 +852,8 @@ void checkstmt( Statement *stmt, SymbolTable * table )
         }
     }
     else if (stmt->type == Print){
-        printf("print : %s \n",stmt->stmt.variable);
         lookup_hashpair(table, stmt->stmt.variable);
+        stmt->stmt.hashval = lookup_hashval(table, stmt->stmt.variable);// hash the stmt node
     }
     else printf("error : statement error\n");//error
 }
@@ -865,6 +880,12 @@ void fprint_op( FILE *target, ValueType op )
         case PlusNode:
             fprintf(target,"+\n");
             break;
+        case MulNode:
+            fprintf(target,"*\n");
+            break;
+        case DivNode:
+            fprintf(target,"/\n");
+            break;
         default:
             fprintf(target,"Error in fprintf_op ValueType = %d\n",op);
             break;
@@ -876,7 +897,7 @@ void fprint_expr( FILE *target, Expression *expr)
     if(expr->leftOperand == NULL){
         switch( (expr->v).type ){
             case Identifier:
-                fprintf(target,"l%s\n",(expr->v).val.id);
+                fprintf(target,"l%c\n",(expr->v).hashval);
                 break;
             case IntConst:
                 fprintf(target,"%d\n",(expr->v).val.ivalue);
@@ -912,7 +933,7 @@ void gencode(Program prog, FILE * target)
         stmt = stmts->first;
         switch(stmt.type){
             case Print:
-                fprintf(target,"l%s\n",stmt.stmt.variable);
+                fprintf(target,"l%c\n",stmt.stmt.hashval);
                 fprintf(target,"p\n");
                 break;
             case Assignment:
@@ -924,7 +945,8 @@ void gencode(Program prog, FILE * target)
                    else if(stmt.stmt.assign.type == Float){
                    fprintf(target,"5 k\n");
                    }*/
-                fprintf(target,"s%s\n",stmt.stmt.assign.id);
+                printf("here is : %c\n",stmt.stmt.assign.hashval);
+                fprintf(target,"s%c\n",stmt.stmt.assign.hashval);
                 fprintf(target,"0 k\n");
                 break;
         }
@@ -946,7 +968,7 @@ void print_expr(Expression *expr)
         print_expr(expr->leftOperand);
         switch((expr->v).type){
             case Identifier:
-                printf("%s ", (expr->v).val.id);
+                printf("%c ", (expr->v).hashval);
                 break;
             case IntConst:
                 printf("%d ", (expr->v).val.ivalue);
