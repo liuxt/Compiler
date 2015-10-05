@@ -83,11 +83,11 @@ Token getIdentifer( FILE *source, char c){
     int i = 0;
     while (islower(c)) {
         if (c == 'p' || c == 'f' || c == 'i') {
-            printf("Can't use character i, p or i as an idetifier");
+            printf("Invalid name: Can't use character i, p or i as an idetifier\n");
             exit(1);
         }
         if (i > IDLENGTH) {
-            printf("variable name exceeds 64 characters");
+            printf("Invalid name: variable name exceeds 64 characters\n");
             exit(1);
         }
         token.tok[i++] = c;
@@ -669,14 +669,21 @@ static inline char * copystring(char * value)
 }
 
 void add2table( SymbolTable *table, char *str, DataType t){
+    int i = 0;
     int index = (int)(hashString(str) % REGNUM);
     HashPair cur_pair = table->table[index];
     while (cur_pair.type != Notype) {
+        if(i >= REGNUM){
+            int reg = REGNUM;
+            printf("Error: variable number has exceeded %d\n", reg);
+            exit(4);
+        }
         if (strcmp(str, cur_pair.str) == 0) {
             printf("Error : id %s has been declared\n", str);//error
         }
         index = (index + 1) % REGNUM;
         cur_pair = table->table[index];
+        i++;
     }
     cur_pair.type = t;
     strcpy(cur_pair.str, str);
@@ -914,7 +921,7 @@ void fprint_expr( FILE *target, Expression *expr)
     else{
         fprint_expr(target, expr->leftOperand);
         if(expr->rightOperand == NULL){
-            fprintf(target,"5k\n");
+            fprintf(target,"5 k\n");
         }
         else{
             //	fprint_right_expr(expr->rightOperand);
