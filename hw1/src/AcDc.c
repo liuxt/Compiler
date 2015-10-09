@@ -82,12 +82,12 @@ Token getIdentifer( FILE *source, char c){
     Token token;
     int i = 0;
     while (islower(c)) {
-        if (c == 'p' || c == 'f' || c == 'i') {
-            printf("Invalid name: Can't use character i, p or i as an idetifier\n");
+        /*if (c == 'p' || c == 'f' || c == 'i') {
+            printf("Can't use character i, p or i as an idetifier");
             exit(1);
-        }
+        }*/
         if (i > IDLENGTH) {
-            printf("Invalid name: variable name exceeds 64 characters\n");
+            printf("variable name exceeds 64 characters");
             exit(1);
         }
         token.tok[i++] = c;
@@ -113,6 +113,7 @@ Token scanner( FILE *source )
 
     while( !feof(source) ){
         c = fgetc(source);
+        char c_next;
 
         while( isspace(c) ) c = fgetc(source);
 
@@ -121,22 +122,46 @@ Token scanner( FILE *source )
 
         if( islower(c) ){
             if (c == 'f') {
-                token.type = FloatDeclaration;
-                token.tok[0] = c;
-                token.tok[1] = '\0';
-                return token;
+                c_next = fgetc(source);
+                if (isspace(c_next) || c_next == EOF) {
+                    token.type = FloatDeclaration;
+                    token.tok[0] = c;
+                    token.tok[1] = '\0';
+                    ungetc(c_next, source);
+                    return token;
+                }
+                else{
+                    ungetc(c_next, source);
+                    return getIdentifer(source, c);
+                }
             }
             else if (c == 'i') {
-                token.type = IntegerDeclaration;
-                token.tok[0] = c;
-                token.tok[1] = '\0';
-                return token;
+                c_next = fgetc(source);
+                if (isspace(c_next)) {
+                    token.type = IntegerDeclaration;
+                    token.tok[0] = c;
+                    token.tok[1] = '\0';
+                    ungetc(c_next, source);
+                    return token;
+                }
+                else{
+                    ungetc(c_next, source);
+                    return getIdentifer(source, c);
+                }
             }
             else if (c == 'p') {
-                token.type = PrintOp;
-                token.tok[0] = c;
-                token.tok[1] = '\0';
-                return token;
+                c_next = fgetc(source);
+                if(isspace(c_next)){
+                    token.type = PrintOp;
+                    token.tok[0] = c;
+                    token.tok[1] = '\0';
+                    ungetc(c_next, source);
+                    return token;
+                }
+                else{
+                    ungetc(c_next, source);
+                    return getIdentifer(source, c);
+                }
             }
             else {
                 token = getIdentifer(source, c);
@@ -242,7 +267,7 @@ Expression *parseValue( FILE *source )
         case IntValue:
             (value->v).type = IntConst;
             (value->v).val.ivalue = atoi(token.tok);
-            printf("this is %d\n", (value->v).val.ivalue);
+            //printf("this is %d\n", (value->v).val.ivalue);
             break;
         case FloatValue:
             (value->v).type = FloatConst;
@@ -669,21 +694,14 @@ static inline char * copystring(char * value)
 }
 
 void add2table( SymbolTable *table, char *str, DataType t){
-    int i = 0;
     int index = (int)(hashString(str) % REGNUM);
     HashPair cur_pair = table->table[index];
     while (cur_pair.type != Notype) {
-        if(i >= REGNUM){
-            int reg = REGNUM;
-            printf("Error: variable number has exceeded %d\n", reg);
-            exit(4);
-        }
         if (strcmp(str, cur_pair.str) == 0) {
             printf("Error : id %s has been declared\n", str);//error
         }
         index = (index + 1) % REGNUM;
         cur_pair = table->table[index];
-        i++;
     }
     cur_pair.type = t;
     strcpy(cur_pair.str, str);
@@ -908,7 +926,7 @@ void fprint_expr( FILE *target, Expression *expr)
                 break;
             case IntConst:
                 fprintf(target,"%d\n",(expr->v).val.ivalue);
-                printf("ivalue: %d\n", (expr->v).val.ivalue);
+                //printf("ivalue: %d\n", (expr->v).val.ivalue);
                 break;
             case FloatConst:
                 fprintf(target,"%f\n", (expr->v).val.fvalue);
@@ -921,7 +939,7 @@ void fprint_expr( FILE *target, Expression *expr)
     else{
         fprint_expr(target, expr->leftOperand);
         if(expr->rightOperand == NULL){
-            fprintf(target,"5 k\n");
+            fprintf(target,"5k\n");
         }
         else{
             //	fprint_right_expr(expr->rightOperand);
@@ -952,7 +970,7 @@ void gencode(Program prog, FILE * target)
                    else if(stmt.stmt.assign.type == Float){
                    fprintf(target,"5 k\n");
                    }*/
-                printf("here is : %c\n",stmt.stmt.assign.hashval);
+                //printf("here is : %c\n",stmt.stmt.assign.hashval);
                 fprintf(target,"s%c\n",stmt.stmt.assign.hashval);
                 fprintf(target,"0 k\n");
                 break;
