@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include "header.h" 
 int linenumber;
+int idCounter;
 symtab * lookup();
-symtab * ptr;
+    symtab * ptr;
 void     insertID();
 void 	 printSymTab();
 /* You need to define for all tokens in C--, here are some examples */
@@ -61,16 +62,6 @@ exp     [eE][+-]?{digit}+
 float1  {digit}+{exp}
 float2  ({digit}+"."{digit}*|"."{digit}+){exp}?
 
-RWReturn    "return"
-RWTypedef   "typedef"
-RWIf    "if"
-RWElse  "else"
-RWInt   "int"
-RWFloat     "float"
-RWFor   "for"
-RWVoid  "void"
-RWWhile     "while"
-
 Float_constant  [+-]?({float1}|{float2})
 String_constant \"(\\.|[^\\"\n])*\"
 comment    "/*"(([^*])|([*]+[^/*]))*("*")+"/"
@@ -117,20 +108,12 @@ error    .
 {String_constant}   {printf("string: %s\n", yytext);}
 {comment}       {printf("comment: %s\n", yytext);}
 
-{RWInt}         { /*printf("%s\n", yytext);return INT;*/  }
-{RWFloat}       { /*printf("%s\n", yytext);return FLOAT;*/ }
-{RWReturn}      {/*return RETURN;*/}
-{RWTypedef}     {/*return TYPEDEF;*/}
-{RWIf}          {/*return IF;*/}
-{RWElse}        {/*return ELSE;*/}
-{RWFor}         {/*return FOR;*/}
-{RWVoid}        {/*return VOID;*/}
-{RWWhile}       {/*return WHILE;*/}
-
 {ID}            { 
 			ptr = lookup(yytext);
-			if (ptr == NULL)
+			if (ptr == NULL){
 			     insertID(yytext);	
+                idCounter = idCounter+1;
+            }
 			else 
 			     ptr->counter++;
 		}
@@ -159,8 +142,8 @@ error    .
 {DL_comma}      {}
 {DL_semicol}    {}
 {newline}   { linenumber += 1; 
-             printf("linenumber: %d\n",linenumber); }
-{error}         {printf("ERR \n"); /*return ERROR;*/ }
+             /*printf("linenumber: %d\n",linenumber); */}
+{error}         {printf("ERR:%s \n",yytext); /*return ERROR;*/ }
 
 
 %%

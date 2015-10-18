@@ -9,6 +9,7 @@
 
 symtab * hash_table[TABLE_SIZE];
 extern int linenumber;
+extern int idCounter;
 
 int HASH(char * str){
 	int idx=0;
@@ -63,10 +64,15 @@ void insertID(char *name){
 	strcpy(symptr->lexeme,name);
 	symptr->line=linenumber;
 	symptr->counter=1;
+    symptr->reserved = isReserved(name);
+    //printf("%d\n",symptr->reserved);
 }
 
 void printSym(symtab* ptr) 
 {
+    /*if(ptr->reserved){
+        printf("reserved: %s\n",ptr->lexeme);
+    }*/
 	    printf(" Name = %s \n", ptr->lexeme);
 	    printf(" References = %d \n", ptr->counter);
 }
@@ -74,16 +80,70 @@ void printSym(symtab* ptr)
 void printSymTab()
 {
     int i;
+    int n = idCounter;
+    int j = 0;
+    printElem p[n];
     printf("----- Symbol Table ---------\n");
     for (i=0; i<TABLE_SIZE; i++)
     {
         symtab* symptr;
-	symptr = hash_table[i];
-	while (symptr != NULL)
-	{
+        symptr = hash_table[i];
+        while (symptr != NULL)
+        {
             printf("====>  index = %d \n", i);
-	    printSym(symptr);
-	    symptr=symptr->front;
-	}
+            if(symptr->reserved == 0){
+                p[j++] = copyPrintElem(symptr);
+            }
+            printSym(symptr);
+            symptr=symptr->front;
+        }
     }
+    qsort(p, j, sizeof(printElem), cmp);
+    //printf("number is: %d\n",j);
+    printf("----- sorted result ------\n");
+    for(i = 0; i < j ; i++){
+        printf("%-20s%d\n", p[i].lexeme, p[i].counter);
+    }
+}
+printElem copyPrintElem(symtab* ptr){
+    printElem* temp = (printElem*)malloc(sizeof(printElem));
+    strcpy(temp->lexeme, ptr->lexeme);
+    temp->counter = ptr->counter;
+    return *temp;
+}
+int isReserved(char* name){
+    if(strcmp(name, "while") == 0){
+        return 1;
+    }
+    if(strcmp(name, "for") == 0){
+        return 1;
+    }
+    if(strcmp(name, "return") == 0){
+        return 1;
+    }
+    if(strcmp(name, "typedef") == 0){
+        return 1;
+    }
+    if(strcmp(name, "void") == 0){
+        return 1;
+    }
+    if(strcmp(name, "int") == 0){
+        return 1;
+    }
+    if(strcmp(name, "float") == 0){
+        return 1;
+    }
+    if(strcmp(name, "if") == 0){
+        return 1;
+    }
+    if(strcmp(name, "else") == 0){
+        return 1;
+    }
+    return 0;
+
+}
+int cmp(const void* a, const void* b){
+    printElem elem1 = *(printElem*)a;
+    printElem elem2 = *(printElem*)b;
+    return strcmp(elem1.lexeme, elem2.lexeme);
 }
