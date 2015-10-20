@@ -10,6 +10,7 @@
 symtab * hash_table[TABLE_SIZE];
 extern int linenumber;
 extern int idCounter;
+extern char* comments;
 
 int HASH(char * str){
 	int idx=0;
@@ -98,6 +99,8 @@ void printSymTab()
             symptr=symptr->front;
         }
     }
+    printf("----- comments -----\n");
+    printf("%s", comments);
     qsort(p, j, sizeof(printElem), cmp);
     //printf("number is: %d\n",j);
     printf("----- sorted result ------\n");

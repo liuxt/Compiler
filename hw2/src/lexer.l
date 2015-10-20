@@ -4,6 +4,7 @@
 #include "header.h" 
 int linenumber;
 int idCounter;
+char* comments;
 symtab * lookup();
     symtab * ptr;
 void     insertID();
@@ -105,8 +106,13 @@ error    .
 {WS}            {/*printf("this is white space\n");*/}
 {Float_constant} {printf("float: %s\n", yytext);}
 {Int_constant}  {/*return INT_CONSTANT;*/}
-{String_constant}   {printf("string: %s\n", yytext);}
-{comment}       {printf("comment: %s\n", yytext);}
+{String_constant}   {/*printf("string: %s\n", yytext);*/}
+{comment}       {
+                comments = realloc(comments, sizeof(char) * (strlen(yytext) + 1));
+                comments = strcat(comments, yytext);
+                comments = strcat(comments, "\n");
+                }
+
 
 {ID}            { 
 			ptr = lookup(yytext);
