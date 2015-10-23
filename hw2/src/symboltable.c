@@ -82,7 +82,7 @@ void printSymTab()
 {
     int i;
     int n = idCounter;
-    int j = 0;
+    int idNum = 0;
     printElem p[n];
     printf("----- Symbol Table ---------\n");
     for (i=0; i<TABLE_SIZE; i++)
@@ -93,18 +93,18 @@ void printSymTab()
         {
             printf("====>  index = %d \n", i);
             if(symptr->reserved == 0){
-                p[j++] = copyPrintElem(symptr);
+                p[idNum++] = copyPrintElem(symptr);
             }
             printSym(symptr);
             symptr=symptr->front;
         }
     }
     printf("----- comments -----\n");
-    printf("%s", comments);
-    qsort(p, j, sizeof(printElem), cmp);
-    //printf("number is: %d\n",j);
+    if(comments != NULL)    printf("%s", comments);
+    qsort(p, idNum, sizeof(printElem), cmp);
+    //printf("number is: %d\n",idNum);
     printf("----- sorted result ------\n");
-    for(i = 0; i < j ; i++){
+    for(i = 0; i < idNum ; i++){
         printf("%-20s%d\n", p[i].lexeme, p[i].counter);
     }
 }

@@ -49,6 +49,9 @@ void 	 printSymTab();
 #define INT_CONSTANT 43
 #define FLOAT_CONSTANT 44
 #define COMMENT 45
+#define STRING_CONSTENT 46
+
+#define WHITE 47
 #define ERROR 		100 
 
 
@@ -62,9 +65,11 @@ Int_constant {digit}+
 exp     [eE][+-]?{digit}+
 float1  {digit}+{exp}
 float2  ({digit}+"."{digit}*|"."{digit}+){exp}?
+special_char "a"|"b"|"f"|"n"|"r"|"t"|"v"|\\|\'|\"|"0"|"ddd"|"xhh"
 
 Float_constant  [+-]?({float1}|{float2})
-String_constant \"(\\.|[^\\"\n])*\"
+String_constant_c \"(\\{special_char}|[^\\"\n])*\"
+String_constant_cminus \"[^\"]*\"
 comment    "/*"(([^*])|([*]+[^/*]))*("*")+"/"
 
 OP_assign        "="
@@ -103,14 +108,15 @@ error    .
 
 %%
 
-{WS}            {/*printf("this is white space\n");*/}
-{Float_constant} {printf("float: %s\n", yytext);}
+{WS}            {/*printf("this is white space\n");return WHITE;*/}
+{Float_constant} {/*printf("float: %s\n", yytext);*/}
 {Int_constant}  {/*return INT_CONSTANT;*/}
-{String_constant}   {/*printf("string: %s\n", yytext);*/}
+{String_constant_cminus}   {/*printf("string: %s\n", yytext);return STRING_CONSTENT*/}
 {comment}       {
-                comments = realloc(comments, sizeof(char) * (strlen(yytext) + 1));
+                comments = realloc(comments, sizeof(char) * (strlen(yytext) + 2));
                 comments = strcat(comments, yytext);
                 comments = strcat(comments, "\n");
+                /*return COMMENT*/
                 }
 
 
@@ -145,11 +151,12 @@ error    .
 {DL_rbrace}     { /*return MK_RBRACE;*/ }
 {DL_rbracket}   {/*return MK_RIGHTBRACKET;*/}
 {DL_lbracket}   {/*return MK_LBRACKET;*/}
-{DL_comma}      {}
-{DL_semicol}    {}
+{DL_comma}      {/*return MK_COMMA;*/}
+{DL_semicol}    {/*return MK_SEMICOLON;*/}
 {newline}   { linenumber += 1; 
-             /*printf("linenumber: %d\n",linenumber); */}
-{error}         {printf("ERR:%s \n",yytext); /*return ERROR;*/ }
+             /*printf("linenumber: %d\n",linenumber);
+             return MK_NEWLINE;*/}
+{error}         {printf("ERR: %s \nexit!\n",yytext); exit(1); }
 
 
 %%
