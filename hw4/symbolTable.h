@@ -69,6 +69,7 @@ typedef struct SymbolAttribute
         TypeDescriptor* typeDescriptor;
         FunctionSignature* functionSignature;
     } attr;
+    int offsetInAR;                                 // newly added
 } SymbolAttribute;
 
 typedef struct SymbolTableEntry
@@ -102,4 +103,6 @@ int declaredLocally(char* symbolName);
 void openScope();
 void closeScope();
 
+int isGlobalVariable(SymbolTableEntry* symbolTableEntry);
+int getVariableSize(TypeDescriptor *typeDescriptor);
 #endif
