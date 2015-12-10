@@ -62,6 +62,7 @@ typedef enum ErrorMsgKind
     ARRAY_SIZE_NOT_INT,
     ARRAY_SIZE_NEGATIVE,
     ARRAY_SUBSCRIPT_NOT_INT,
+    ARRAY_SUBSCRIPT_VARIBLE_OR_STRING,
     PASS_ARRAY_TO_SCALAR,
     PASS_SCALAR_TO_ARRAY
 } ErrorMsgKind;
@@ -69,7 +70,7 @@ typedef enum ErrorMsgKind
 void printErrorMsgSpecial(AST_NODE* node1, char* name2, ErrorMsgKind errorMsgKind)
 {
     g_anyErrorOccur = 1;
-    printf("Error found in line %d\n", node1->linenumber);
+    printf("Error found in line %d#\n", node1->linenumber);
     switch(errorMsgKind)
     {
     case PASS_ARRAY_TO_SCALAR:
@@ -92,27 +93,31 @@ void printErrorMsgSpecial(AST_NODE* node1, char* name2, ErrorMsgKind errorMsgKin
 void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
 {
     g_anyErrorOccur = 1;
-    printf("Error found in line %d\n", node->linenumber);
+    printf("Error found in line %d#\n", node->linenumber);
     switch(errorMsgKind)
     {
+    case VOID_VARIABLE:
+        printf("Type \'%s\' cannot be a variable's type.\n",
+               node->semantic_value.identifierSemanticValue.identifierName);
+        break;
+    case TYPEDEF_VOID_ARRAY:
+        printf("Declaration of \'%s\' as void array.\n",
+               node->semantic_value.identifierSemanticValue.identifierName);
+        break;
     case SYMBOL_IS_NOT_TYPE:
         printf("ID \'%s\' is not a type name.\n",
-            node->semantic_value.identifierSemanticValue.identifierName);
-        break;
-    case SYMBOL_REDECLARE:
-        printf("ID \'%s\' redeclared.\n", 
             node->semantic_value.identifierSemanticValue.identifierName);
         break;
     case SYMBOL_UNDECLARED:
         printf("ID \'%s\' undeclared.\n", 
             node->semantic_value.identifierSemanticValue.identifierName);
         break;
-    case NOT_FUNCTION_NAME:
-        printf("ID \'%s\' is not a function.\n", 
-            node->semantic_value.identifierSemanticValue.identifierName);
+    case SYMBOL_REDECLARE:
+        printf("ID \'%s\' redeclared.\n",
+               node->semantic_value.identifierSemanticValue.identifierName);
         break;
     case TRY_TO_INIT_ARRAY:
-        printf("Cannot initialize array \'%s\'.\n",
+        printf("Array can't be initialized \'%s\'.\n",
             node->semantic_value.identifierSemanticValue.identifierName);
         break;
     case EXCESSIVE_ARRAY_DIM_DECLARATION:
@@ -124,16 +129,12 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
         printf("Function \'%s\' cannot return array.\n",
             node->rightSibling->semantic_value.identifierSemanticValue.identifierName);
         break;
-    case VOID_VARIABLE:
-        printf("Type \'%s\' cannot be a variable's type.\n",
-            node->semantic_value.identifierSemanticValue.identifierName);
-        break;
-    case TYPEDEF_VOID_ARRAY:
-        printf("Declaration of \'%s\' as array of voids.\n",
-            node->semantic_value.identifierSemanticValue.identifierName);
-        break;
     case PARAMETER_TYPE_UNMATCH:
         printf("Parameter is incompatible with parameter type.\n");
+        break;
+    case NOT_FUNCTION_NAME:
+        printf("ID \'%s\' is not a function.\n",
+               node->semantic_value.identifierSemanticValue.identifierName);
         break;
     case TOO_FEW_ARGUMENTS:
         printf("too few arguments to function \'%s\'.\n",
@@ -166,7 +167,7 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
             node->semantic_value.identifierSemanticValue.identifierName);
         break;
     case STRING_OPERATION:
-        printf("String operation is unsupported.\n");
+        printf("String operation is unsupported in C--.\n");
         break;
     case ARRAY_SIZE_NOT_INT:
         printf("Size of array \'%s\' has non-integer type.\n",
@@ -179,6 +180,9 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
     case ARRAY_SUBSCRIPT_NOT_INT:
         printf("Array subscript is not an integer.\n");
         break;
+    case ARRAY_SUBSCRIPT_VARIBLE_OR_STRING:
+            printf("Array subscript is varible or string\n");
+            break;
     default:
         printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
         break;
@@ -233,35 +237,6 @@ void processProgramNode(AST_NODE *programNode)
     return;
 }
 
-void processDeclarationNode(AST_NODE* declarationNode)
-{
-    AST_NODE *typeNode = declarationNode->child;
-    processTypeNode(typeNode);
-    if(typeNode->dataType == ERROR_TYPE)
-    {
-        declarationNode->dataType = ERROR_TYPE;
-        return;
-    }
-    
-    switch(declarationNode->semantic_value.declSemanticValue.kind)
-    {
-    case VARIABLE_DECL:
-        declareIdList(declarationNode, VARIABLE_ATTRIBUTE, 0);
-        break;
-    case TYPE_DECL:
-        declareIdList(declarationNode, TYPE_ATTRIBUTE, 0);
-        break;
-    case FUNCTION_DECL:
-        declareFunction(declarationNode);
-        break;
-    case FUNCTION_PARAMETER_DECL:
-        declareIdList(declarationNode, VARIABLE_ATTRIBUTE, 1);
-        break;
-    }
-    return;
-}
-
-
 void processTypeNode(AST_NODE* idNodeAsType)
 {
     SymbolTableEntry* symbolTableEntry = retrieveSymbol(idNodeAsType->semantic_value.identifierSemanticValue.identifierName);
@@ -284,6 +259,34 @@ void processTypeNode(AST_NODE* idNodeAsType)
         }
         //*/
     }
+}
+
+void processDeclarationNode(AST_NODE* declarationNode)
+{
+    AST_NODE *typeNode = declarationNode->child;
+    processTypeNode(typeNode);
+    if(typeNode->dataType == ERROR_TYPE)
+    {
+        declarationNode->dataType = ERROR_TYPE;
+        return;
+    }
+    
+    switch(declarationNode->semantic_value.declSemanticValue.kind)
+    {
+        case VARIABLE_DECL:
+            declareIdList(declarationNode, VARIABLE_ATTRIBUTE, 0);
+            break;
+        case TYPE_DECL:
+            declareIdList(declarationNode, TYPE_ATTRIBUTE, 0);
+            break;
+        case FUNCTION_DECL:
+            declareFunction(declarationNode);
+            break;
+        case FUNCTION_PARAMETER_DECL:
+            declareIdList(declarationNode, VARIABLE_ATTRIBUTE, 1);
+            break;
+    }
+    return;
 }
 
 // for VARIABLE_DECL, TYPE_DECL, FUNCTION_DECL 
@@ -1056,6 +1059,9 @@ void processVariableLValue(AST_NODE* idNode)
             ++dimension;
             // check index in each dim
             processExprRelatedNode(traverseDimList);
+            // for debug
+//            printf("%s: const:%d ",idNode->semantic_value.identifierSemanticValue.identifierName, traverseDimList->nodeType);
+//            printf("%d\n",traverseDimList->semantic_value.exprSemanticValue.isConstEval);
             if(traverseDimList->dataType == ERROR_TYPE)
             {
                 idNode->dataType = ERROR_TYPE;
@@ -1063,6 +1069,11 @@ void processVariableLValue(AST_NODE* idNode)
             else if(traverseDimList->dataType == FLOAT_TYPE)
             {
                 printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
+                idNode->dataType = ERROR_TYPE;
+            }
+            else if(!((traverseDimList->semantic_value.exprSemanticValue.isConstEval == 1) || (traverseDimList->nodeType == CONST_VALUE_NODE && traverseDimList->dataType != CONST_STRING_TYPE))){
+//                printf("Error at line %d \nindex can't be variable or string\n",idNode->linenumber);
+                printErrorMsg(idNode, ARRAY_SUBSCRIPT_VARIBLE_OR_STRING);
                 idNode->dataType = ERROR_TYPE;
             }
             traverseDimList = traverseDimList->rightSibling;
@@ -1140,10 +1151,14 @@ void processVariableRValue(AST_NODE* idNode)
         {
             int dimension = 0;
             AST_NODE *traverseDimList = idNode->child;
+            
             while(traverseDimList)
             {
                 ++dimension;
                 processExprRelatedNode(traverseDimList);
+                // for debug
+//                printf("%s: const:%d ",idNode->semantic_value.identifierSemanticValue.identifierName, traverseDimList->nodeType);
+//                printf("%d\n",traverseDimList->semantic_value.exprSemanticValue.isConstEval);
                 if(traverseDimList->dataType == ERROR_TYPE)
                 {
                     idNode->dataType = ERROR_TYPE;
@@ -1151,6 +1166,11 @@ void processVariableRValue(AST_NODE* idNode)
                 else if(traverseDimList->dataType == FLOAT_TYPE)
                 {
                     printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
+                    idNode->dataType = ERROR_TYPE;
+                }
+                else if(!((traverseDimList->semantic_value.exprSemanticValue.isConstEval == 1) || (traverseDimList->nodeType == CONST_VALUE_NODE && traverseDimList->dataType != CONST_STRING_TYPE))){
+//                    printf("Error at line %d \nindex can't be variable or string\n",idNode->linenumber);
+                    printErrorMsg(idNode, ARRAY_SUBSCRIPT_VARIBLE_OR_STRING);
                     idNode->dataType = ERROR_TYPE;
                 }
                 traverseDimList = traverseDimList->rightSibling;
@@ -1307,72 +1327,6 @@ void processStmtNode(AST_NODE* stmtNode)
             stmtNode->dataType = ERROR_TYPE;
             break;
         }
-    }
-}
-
-// process VARIABLE_DECL_LIST_NODE, STMT_LIST_NODE, NONEMPTY_ASSIGN_EXPR_LIST_NODE
-// NONEMPTY_ASSIGN_EXPR_LIST_NODE & NONEMPTY_RELOP_EXPR_LIST_NODE & NUL_NODE
-void processGeneralNode(AST_NODE *node)
-{
-    AST_NODE *traverseChildren = node->child;
-    switch(node->nodeType)
-    {
-    case VARIABLE_DECL_LIST_NODE:
-        while(traverseChildren)
-        {
-            processDeclarationNode(traverseChildren);
-            if(traverseChildren->dataType == ERROR_TYPE)
-            {
-                node->dataType = ERROR_TYPE;
-            }
-            traverseChildren = traverseChildren->rightSibling;
-        }
-        break;
-    case STMT_LIST_NODE:
-        while(traverseChildren)
-        {
-            processStmtNode(traverseChildren);
-            if(traverseChildren->dataType == ERROR_TYPE)
-            {
-                node->dataType = ERROR_TYPE;
-            }
-            traverseChildren = traverseChildren->rightSibling;
-        }
-        break;
-    case NONEMPTY_ASSIGN_EXPR_LIST_NODE:
-        while(traverseChildren)
-        {
-            checkAssignOrExpr(traverseChildren);
-            if(traverseChildren->dataType == ERROR_TYPE)
-            {
-                node->dataType = ERROR_TYPE;
-            }
-            //
-            node->dataType = traverseChildren->dataType;
-            //
-            traverseChildren = traverseChildren->rightSibling;
-        }
-        break;
-    case NONEMPTY_RELOP_EXPR_LIST_NODE:
-        while(traverseChildren)
-        {
-            processExprRelatedNode(traverseChildren);
-            if(traverseChildren->dataType == ERROR_TYPE)
-            {
-                node->dataType = ERROR_TYPE;
-            }
-            //
-            node->dataType = traverseChildren->dataType;
-            //
-            traverseChildren = traverseChildren->rightSibling;
-        }
-        break;
-    case NUL_NODE:
-        break;
-    default:
-        printf("Unhandle case in void processGeneralNode(AST_NODE *node)\n");
-        node->dataType = ERROR_TYPE;
-        break;
     }
 }
 
@@ -1548,5 +1502,71 @@ void declareFunction(AST_NODE* declarationNode)
         {
             removeSymbol(functionNameID->semantic_value.identifierSemanticValue.identifierName);
         }
+    }
+}
+
+// process VARIABLE_DECL_LIST_NODE, STMT_LIST_NODE, NONEMPTY_ASSIGN_EXPR_LIST_NODE
+// NONEMPTY_ASSIGN_EXPR_LIST_NODE & NONEMPTY_RELOP_EXPR_LIST_NODE & NUL_NODE
+void processGeneralNode(AST_NODE *node)
+{
+    AST_NODE *traverseChildren = node->child;
+    switch(node->nodeType)
+    {
+        case VARIABLE_DECL_LIST_NODE:
+            while(traverseChildren)
+            {
+                processDeclarationNode(traverseChildren);
+                if(traverseChildren->dataType == ERROR_TYPE)
+                {
+                    node->dataType = ERROR_TYPE;
+                }
+                traverseChildren = traverseChildren->rightSibling;
+            }
+            break;
+        case STMT_LIST_NODE:
+            while(traverseChildren)
+            {
+                processStmtNode(traverseChildren);
+                if(traverseChildren->dataType == ERROR_TYPE)
+                {
+                    node->dataType = ERROR_TYPE;
+                }
+                traverseChildren = traverseChildren->rightSibling;
+            }
+            break;
+        case NONEMPTY_ASSIGN_EXPR_LIST_NODE:
+            while(traverseChildren)
+            {
+                checkAssignOrExpr(traverseChildren);
+                if(traverseChildren->dataType == ERROR_TYPE)
+                {
+                    node->dataType = ERROR_TYPE;
+                }
+                //
+                node->dataType = traverseChildren->dataType;
+                //
+                traverseChildren = traverseChildren->rightSibling;
+            }
+            break;
+        case NONEMPTY_RELOP_EXPR_LIST_NODE:
+            while(traverseChildren)
+            {
+                processExprRelatedNode(traverseChildren);
+                if(traverseChildren->dataType == ERROR_TYPE)
+                {
+                    node->dataType = ERROR_TYPE;
+                }
+                //
+                node->dataType = traverseChildren->dataType;
+                //
+                traverseChildren = traverseChildren->rightSibling;
+            }
+            break;
+        case NUL_NODE:
+            break;
+        default:
+            printf("Unhandle case in void processGeneralNode(AST_NODE *node)\n");
+            node->dataType = ERROR_TYPE;
+            break;
     }
 }
