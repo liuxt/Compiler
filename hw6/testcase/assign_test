@@ -1,0 +1,11 @@
+int func(int a, int b[]){
+    return 0;
+}
+int main(){
+    int a,b;
+    int c[10][10][10];
+    a = 3;
+    while(a = 5);
+    write("al");
+    func(c[10][10][10], c[10]);
+}
