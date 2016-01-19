@@ -1,0 +1,9 @@
+void func(int a, int b){
+    return a + b;
+}
+int main(){
+    float c;
+    int a, b;
+    c = func(a, a, a);
+
+}
